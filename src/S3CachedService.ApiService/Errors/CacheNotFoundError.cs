@@ -2,6 +2,9 @@
 
 namespace S3CachedService.ApiService.Errors;
 
+/// <summary>
+/// File not found in cache storage
+/// </summary>
 public class CacheNotFoundError : ServiceError
 {
     public CacheNotFoundError(string bucketName, string objectKey)
@@ -9,6 +12,7 @@ public class CacheNotFoundError : ServiceError
     {
     }
 
+    /// <inheritdoc/>
     public override ErrorDetails GetDetails()
     {
         var details = base.GetDetails();

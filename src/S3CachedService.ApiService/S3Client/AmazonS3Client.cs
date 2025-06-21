@@ -4,6 +4,9 @@ using Amazon.S3.Model;
 
 namespace S3CachedService.ApiService.S3Client;
 
+/// <summary>
+/// Client fo connect to S3 storage over Amazon client
+/// </summary>
 public class AmazonS3Client : IS3Client
 {
     private readonly IAmazonS3 _s3Client;
@@ -13,6 +16,7 @@ public class AmazonS3Client : IS3Client
         _s3Client = s3Client;
     }
 
+    /// <inheritdoc/>
     public async Task<Result<Stream>> GetObjectStreamAsync(string bucketName, string objectKey, CancellationToken ct = default)
     {
         var request = new GetObjectRequest
@@ -33,6 +37,7 @@ public class AmazonS3Client : IS3Client
         }
     }
 
+    /// <inheritdoc/>
     public async Task<Result<byte[]>> GetObjectBytesAsync(string bucketName, string objectKey, CancellationToken ct = default)
     {
         var result = await GetObjectStreamAsync(bucketName, objectKey);
@@ -49,6 +54,7 @@ public class AmazonS3Client : IS3Client
         return memoryStream.ToArray();
     }
 
+    /// <inheritdoc/>
     public async Task<Result<string>> GetObjectAsStringAsync(string bucketName, string objectKey, CancellationToken ct = default)
     {
         var result = await GetObjectStreamAsync(bucketName, objectKey, ct);
@@ -64,6 +70,7 @@ public class AmazonS3Client : IS3Client
         return await reader.ReadToEndAsync(ct);
     }
 
+    /// <inheritdoc/>
     public async Task<Result<bool>> DoesObjectExistAsync(string bucketName, string objectKey, CancellationToken ct = default)
     {
         var request = new GetObjectMetadataRequest
@@ -84,6 +91,7 @@ public class AmazonS3Client : IS3Client
         }
     }
 
+    /// <inheritdoc/>
     public async Task<Result> UploadObjectFromStreamAsync(string bucketName, string objectKey, Stream data, string contentType, CancellationToken ct = default)
     {
         var request = new PutObjectRequest
@@ -106,6 +114,7 @@ public class AmazonS3Client : IS3Client
         }
     }
 
+    /// <inheritdoc/>
     public async Task<Result> DeleteObjectAsync(string bucketName, string objectKey, CancellationToken ct = default)
     {
         var request = new DeleteObjectRequest
