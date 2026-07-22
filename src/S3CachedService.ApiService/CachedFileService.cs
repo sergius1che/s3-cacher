@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.StaticFiles;
+п»їusing Microsoft.AspNetCore.StaticFiles;
 using S3CachedService.ApiService;
 using S3CachedService.ApiService.Cache;
 using S3CachedService.ApiService.Errors;
@@ -35,7 +35,7 @@ public class CachedFileService : ICachedFileService
 
         var contentDisposition = new System.Net.Mime.ContentDisposition
         {
-            Inline = ShouldDisplayInBrowser(mimeType), // true - показывать в браузере, false - скачивать
+            Inline = ShouldDisplayInBrowser(mimeType), // true - РїРѕРєР°Р·С‹РІР°С‚СЊ РІ Р±СЂР°СѓР·РµСЂРµ, false - СЃРєР°С‡РёРІР°С‚СЊ
             FileName = userFileName
         };
 

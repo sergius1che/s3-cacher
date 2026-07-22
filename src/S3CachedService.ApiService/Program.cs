@@ -1,4 +1,4 @@
-using Amazon.S3;
+п»їusing Amazon.S3;
 using S3CachedService.ApiService.S3Client;
 using OpenTelemetry.Trace;
 using S3CachedService.ApiService.Cache;
@@ -14,7 +14,7 @@ builder.Services.AddProblemDetails();
 
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracerProviderBuilder => tracerProviderBuilder
-        .AddSource("AWS") // Источник от AWS SDK
+        .AddSource("AWS") // РСЃС‚РѕС‡РЅРёРє РѕС‚ AWS SDK
         .AddAspNetCoreInstrumentation()
         .AddAWSInstrumentation());
 

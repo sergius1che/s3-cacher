@@ -1,4 +1,4 @@
-using System.IO.Pipelines;
+п»їusing System.IO.Pipelines;
 
 public static class StreamExtensions
 {
@@ -18,12 +18,12 @@ public static class StreamExtensions
                 break;
             }
 
-            // Получаем буфер у PipeWriter'а
+            // РџРѕР»СѓС‡Р°РµРј Р±СѓС„РµСЂ Сѓ PipeWriter'Р°
             var writeBuffer = destination.GetMemory(bytesRead);
             buffer.AsSpan(0, bytesRead).CopyTo(writeBuffer.Span);
             destination.Advance(bytesRead);
 
-            // Уведомляем PipeWriter, что порция данных готова
+            // РЈРІРµРґРѕРјР»СЏРµРј PipeWriter, С‡С‚Рѕ РїРѕСЂС†РёСЏ РґР°РЅРЅС‹С… РіРѕС‚РѕРІР°
             var result = await destination.FlushAsync(ct);
 
             if (result.IsCompleted)
@@ -32,7 +32,7 @@ public static class StreamExtensions
             }
         }
 
-        // Завершаем запись
+        // Р—Р°РІРµСЂС€Р°РµРј Р·Р°РїРёСЃСЊ
         destination.Complete();
     }
 
@@ -52,7 +52,7 @@ public static class StreamExtensions
 
         while (true)
         {
-            // Чтение из исходного потока
+            // Р§С‚РµРЅРёРµ РёР· РёСЃС…РѕРґРЅРѕРіРѕ РїРѕС‚РѕРєР°
             var read = await source.ReadAsync(memory, ct);
 
             if (read == 0)
@@ -60,10 +60,10 @@ public static class StreamExtensions
                 break;
             }
 
-            // Запись в целевой поток
+            // Р—Р°РїРёСЃСЊ РІ С†РµР»РµРІРѕР№ РїРѕС‚РѕРє
             await destination.WriteAsync(memory[..read], ct);
 
-            // Запись в PipeWriter
+            // Р—Р°РїРёСЃСЊ РІ PipeWriter
             var writeBuffer = pipeWriter.GetMemory(read);
             memory[..read].CopyTo(writeBuffer);
             pipeWriter.Advance(read);
@@ -76,7 +76,7 @@ public static class StreamExtensions
             }
         }
 
-        // Завершение работы
+        // Р—Р°РІРµСЂС€РµРЅРёРµ СЂР°Р±РѕС‚С‹
         destination.Flush();
         await pipeWriter.CompleteAsync();
     }

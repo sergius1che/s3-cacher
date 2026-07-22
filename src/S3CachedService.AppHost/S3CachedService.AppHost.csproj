@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Sdk Name="Aspire.AppHost.Sdk" Version="9.0.0" />
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.2" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -17,7 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.0.0" />
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <!-- Прямой референс перекрывает уязвимый транзитивный MessagePack 2.5.192 из StreamJsonRpc (GHSA-hv8m-jj95-wg3x и др.) -->
+    <PackageReference Include="MessagePack" />
   </ItemGroup>
 
 </Project>
