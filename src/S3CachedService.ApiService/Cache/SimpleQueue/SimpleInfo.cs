@@ -18,7 +18,7 @@ internal class SimpleInfo
 
     public required string ObjectKey { get; init; }
 
-    public int ObjectSize { get; set; }
+    public long ObjectSize { get; set; }
 
     public FileState State { get; set; }
 

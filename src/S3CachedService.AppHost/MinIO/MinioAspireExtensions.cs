@@ -26,7 +26,7 @@ public static class MinioAspireExtensions
             .AddResource(resource)
             .WithImage("minio/minio")
             .WithImageRegistry("quay.io")
-            .WithImageTag("latest")
+            .WithImageTag("RELEASE.2025-04-22T22-12-26Z")
             .WithHttpEndpoint(port: containerPort, targetPort: DEFAULT_CONTAINER_PORT, name: "minio-container-port")
             .WithHttpEndpoint(port: consolePort, targetPort: DEFAULT_CONSOLE_PORT, name: "minio-console-port")
             .WithEnvironment(context =>

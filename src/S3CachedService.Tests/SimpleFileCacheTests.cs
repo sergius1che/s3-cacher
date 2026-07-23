@@ -2,6 +2,7 @@ using System.IO.Pipelines;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using S3CachedService.ApiService.Cache.SimpleQueue;
+using S3CachedService.ApiService.S3Client;
 
 namespace S3CachedService.Tests;
 
@@ -85,9 +86,10 @@ public class SimpleFileCacheTests : IDisposable
     private static async Task SaveAsync(SimpleFileCache cache, string bucket, string objectKey, int payloadSize)
     {
         using var source = new MemoryStream(new byte[payloadSize]);
+        var s3Stream = new S3ObjectStream(source, payloadSize);
         var response = PipeWriter.Create(new MemoryStream());
 
-        var result = await cache.SaveStreamAsync(bucket, objectKey, source, response);
+        var result = await cache.SaveStreamAsync(bucket, objectKey, s3Stream, response);
 
         Assert.True(result.IsSuccess);
     }

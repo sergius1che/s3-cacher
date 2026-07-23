@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Options;
 using S3CachedService.ApiService.Errors;
+using S3CachedService.ApiService.S3Client;
 
 namespace S3CachedService.ApiService.Cache.SimpleQueue;
 
@@ -54,7 +55,17 @@ public class SimpleFileCache : IFileCache, IHostedService
         return fileInfo.OpenRead();
     }
 
-    public async Task<Result> SaveStreamAsync(string bucketName, string objectKey, Stream s3Stream, PipeWriter response, CancellationToken ct = default)
+    public Task<Result> SaveStreamAsync(string bucketName, string objectKey, S3ObjectStream s3Stream, PipeWriter response, CancellationToken ct = default)
+    {
+        return SaveStreamInternalAsync(bucketName, objectKey, s3Stream, response, responseRange: null, ct);
+    }
+
+    public Task<Result> SaveStreamAsync(string bucketName, string objectKey, S3ObjectStream s3Stream, PipeWriter response, ByteRange responseRange, CancellationToken ct = default)
+    {
+        return SaveStreamInternalAsync(bucketName, objectKey, s3Stream, response, responseRange, ct);
+    }
+
+    private async Task<Result> SaveStreamInternalAsync(string bucketName, string objectKey, S3ObjectStream s3Stream, PipeWriter response, ByteRange? responseRange, CancellationToken ct)
     {
         var header = new FileHeader
         {
@@ -69,6 +80,7 @@ public class SimpleFileCache : IFileCache, IHostedService
             ObjectKey = objectKey,
             State = FileState.Caching,
             Header = header,
+            ObjectSize = s3Stream.Length
         };
 
         if (!_cachedFiles.TryAdd(GetKey(bucketName, objectKey), fileInfo))
@@ -84,7 +96,15 @@ public class SimpleFileCache : IFileCache, IHostedService
             MemoryMarshal.Write(buffer, in header);
 
             await fw.WriteAsync(buffer.ToArray().AsMemory(0, buffer.Length), ct);
-            await s3Stream.CopyToAsync(fw, response, ct: ct);
+
+            if (responseRange is null)
+            {
+                await s3Stream.Stream.CopyToAsync(fw, response, ct: ct);
+            }
+            else
+            {
+                await s3Stream.Stream.CopyToAsync(fw, response, responseRange.Value, ct: ct);
+            }
 
             fileInfo.ObjectSize = (int)(fw.Length - Unsafe.SizeOf<FileHeader>());
         }
