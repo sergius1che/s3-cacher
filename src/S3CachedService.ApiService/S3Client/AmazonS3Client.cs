@@ -17,7 +17,7 @@ public class AmazonS3Client : IS3Client
     }
 
     /// <inheritdoc/>
-    public async Task<Result<Stream>> GetObjectStreamAsync(string bucketName, string objectKey, CancellationToken ct = default)
+    public async Task<Result<S3ObjectStream>> GetObjectStreamAsync(string bucketName, string objectKey, CancellationToken ct = default)
     {
         var request = new GetObjectRequest
         {
@@ -29,11 +29,11 @@ public class AmazonS3Client : IS3Client
         {
             var response = await _s3Client.GetObjectAsync(request, ct);
 
-            return response.ResponseStream;
+            return new S3ObjectStream(response.ResponseStream, response.ContentLength);
         }
         catch (AmazonS3Exception ex)
         {
-            return Result<Stream>.Failure(ex.HandleError(bucketName, objectKey));
+            return Result<S3ObjectStream>.Failure(ex.HandleError(bucketName, objectKey));
         }
     }
 
@@ -47,9 +47,9 @@ public class AmazonS3Client : IS3Client
             return Result<byte[]>.Failure(result.Error);
         }
 
-        using var stream = result.Value;
+        using var s3Object = result.Value;
         using var memoryStream = new MemoryStream();
-        await stream.CopyToAsync(memoryStream, ct);
+        await s3Object.Stream.CopyToAsync(memoryStream, ct);
 
         return memoryStream.ToArray();
     }
@@ -64,8 +64,8 @@ public class AmazonS3Client : IS3Client
             return Result<string>.Failure(result.Error);
         }
 
-        using var stream = result.Value;
-        using var reader = new StreamReader(stream);
+        using var s3Object = result.Value;
+        using var reader = new StreamReader(s3Object.Stream);
 
         return await reader.ReadToEndAsync(ct);
     }

@@ -11,8 +11,8 @@ public interface IS3Client
     /// <param name="bucketName">S3 bucket name</param>
     /// <param name="objectKey">Unique object identifier</param>
     /// <param name="ct">Operation cancellation token</param>
-    /// <returns>Result with object <see cref="Stream"/></returns>
-    Task<Result<Stream>> GetObjectStreamAsync(string bucketName, string objectKey, CancellationToken ct = default);
+    /// <returns>Result with <see cref="S3ObjectStream"/> (content stream and full object length)</returns>
+    Task<Result<S3ObjectStream>> GetObjectStreamAsync(string bucketName, string objectKey, CancellationToken ct = default);
 
     /// <summary>
     /// Get an object bytes from storage
