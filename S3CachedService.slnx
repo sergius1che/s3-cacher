@@ -13,6 +13,7 @@
     <File Path="CLAUDE.md" />
     <File Path="Directory.Packages.props" />
     <File Path="LICENSE.TXT" />
+    <File Path="README.md" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="src/S3CachedService.Tests/S3CachedService.Tests.csproj" />

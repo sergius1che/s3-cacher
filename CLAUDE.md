@@ -10,7 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 пишет и в ответ клиенту, и в файл кэша).
 
 .NET 9 + .NET Aspire 9.0. Основная разработка идёт в ветке `first-implementation`
-(`master` пустой — только `.gitignore`). README отсутствует.
+(`master` пустой — только `.gitignore`). В `README.md` — конфигурация для DevOps
+(env-переменные, пример манифеста Kubernetes) и примеры запросов.
 
 ## Команды
 
