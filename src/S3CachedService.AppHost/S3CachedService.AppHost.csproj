@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.2" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>295871ae-db94-436e-a4d2-24dd1aaf909c</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\S3CachedService.ApiService\S3CachedService.ApiService.csproj" />
+    <ProjectReference Include="..\S3CachedService.Web\S3CachedService.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <!-- Прямой референс перекрывает уязвимый транзитивный MessagePack 2.5.192 из StreamJsonRpc (GHSA-hv8m-jj95-wg3x и др.) -->
+    <PackageReference Include="MessagePack" />
+  </ItemGroup>
+
+</Project>

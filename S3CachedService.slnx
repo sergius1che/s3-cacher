@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/Apps/">
+    <Project Path="src/S3CachedService.ApiService/S3CachedService.ApiService.csproj" />
+    <Project Path="src/S3CachedService.AppHost/S3CachedService.AppHost.csproj" />
+    <Project Path="src/S3CachedService.Web/S3CachedService.Web.csproj" />
+  </Folder>
+  <Folder Name="/Libs/">
+    <Project Path="src/S3CachedService.ServiceDefaults/S3CachedService.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/SolutionFiles/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="CLAUDE.md" />
+    <File Path="Directory.Packages.props" />
+    <File Path="LICENSE.TXT" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="src/S3CachedService.Tests/S3CachedService.Tests.csproj" />
+  </Folder>
+</Solution>
