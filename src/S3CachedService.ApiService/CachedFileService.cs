@@ -117,7 +117,7 @@ public class CachedFileService : ICachedFileService
             {
                 await result.Error.WriteToAsync(httpContext);
                 return;
-            }
+        }
         }
     }
 
@@ -143,7 +143,7 @@ public class CachedFileService : ICachedFileService
     }
 
     private static async Task WriteFileAsync(HttpContext httpContext, Stream file, RangeItemHeaderValue? range)
-    {
+        {
         if (range is null)
         {
             await file.CopyToPipeAsync(httpContext.Response.BodyWriter, ct: httpContext.RequestAborted);
@@ -154,21 +154,21 @@ public class CachedFileService : ICachedFileService
         var total = file.Length - file.Position;
 
         if (!TryResolveRange(range, total, out var window))
-        {
+            {
             // Заголовки контента уже выставлены под успешный ответ — убираем лишний.
             httpContext.Response.Headers.Remove(HeaderNames.ContentDisposition);
 
             await WriteRangeNotSatisfiableAsync(httpContext, total);
 
-            return;
-        }
+                return;
+            }
 
         SetPartialContentHeaders(httpContext, window, total);
 
         file.Seek(window.From, SeekOrigin.Current);
 
         await file.CopyToPipeAsync(httpContext.Response.BodyWriter, window.Length, ct: httpContext.RequestAborted);
-    }
+        }
 
     /// <summary>
     /// Разрешает запрошенный диапазон в абсолютное окно [From..To] по полной длине объекта.
