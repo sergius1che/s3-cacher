@@ -16,4 +16,8 @@
     <ProjectReference Include="..\S3CachedService.ServiceDefaults\S3CachedService.ServiceDefaults.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="S3CachedService.Tests" />
+  </ItemGroup>
+
 </Project>

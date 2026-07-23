@@ -10,6 +10,8 @@
   <Folder Name="/SolutionFiles/">
     <File Path=".editorconfig" />
     <File Path=".gitignore" />
+    <File Path="CLAUDE.md" />
+    <File Path="Directory.Packages.props" />
     <File Path="LICENSE.TXT" />
   </Folder>
   <Folder Name="/Tests/">

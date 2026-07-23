@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\S3CachedService.AppHost\S3CachedService.AppHost.csproj" />
+    <ProjectReference Include="..\S3CachedService.ApiService\S3CachedService.ApiService.csproj" />
   </ItemGroup>
 
   <ItemGroup>

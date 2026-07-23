@@ -34,7 +34,9 @@ builder.Services.AddSingleton<IAmazonS3>(p =>
 
 builder.Services.AddTransient<IS3Client, S3CachedService.ApiService.S3Client.AmazonS3Client>();
 builder.Services.AddSingleton<ICachedFileService, CachedFileService>();
-builder.Services.AddSingleton<IFileCache, SimpleFileCache>();
+builder.Services.AddSingleton<SimpleFileCache>();
+builder.Services.AddSingleton<IFileCache>(p => p.GetRequiredService<SimpleFileCache>());
+builder.Services.AddHostedService(p => p.GetRequiredService<SimpleFileCache>());
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

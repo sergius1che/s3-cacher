@@ -17,6 +17,7 @@ public class SimpleFileCache : IFileCache, IHostedService
 
     private Task? _cleanupTask;
     private bool _stopped;
+    private long _totalBytes;
 
     public SimpleFileCache(
         IOptions<SimpleQueueSettings> options,
@@ -34,6 +35,12 @@ public class SimpleFileCache : IFileCache, IHostedService
         _stopped = false;
         _logger = logger;
     }
+
+    /// <summary>
+    /// Суммарный объём полезной нагрузки файлов в кэше (без заголовков).
+    /// Значение приближённое: при вытеснении ещё докачивающегося файла возможен дрейф.
+    /// </summary>
+    public long TotalBytes => Interlocked.Read(ref _totalBytes);
 
     public async Task<Result<Stream>> GetFileAsync(string bucketName, string objectKey, RequestParameters parameters, CancellationToken ct = default)
     {
@@ -78,7 +85,11 @@ public class SimpleFileCache : IFileCache, IHostedService
 
             await fw.WriteAsync(buffer.ToArray().AsMemory(0, buffer.Length), ct);
             await s3Stream.CopyToAsync(fw, response, ct: ct);
+
+            fileInfo.ObjectSize = (int)(fw.Length - Unsafe.SizeOf<FileHeader>());
         }
+
+        Interlocked.Add(ref _totalBytes, fileInfo.ObjectSize);
 
         fileInfo.SetComplete();
 
@@ -90,10 +101,11 @@ public class SimpleFileCache : IFileCache, IHostedService
         return Path.Combine(_simpleQueueSettings.DataPath, bucketName, objectKey);
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
+        await RestoreCacheAsync(cancellationToken);
+
         _cleanupTask = CleanupAsync();
-        return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
@@ -101,6 +113,87 @@ public class SimpleFileCache : IFileCache, IHostedService
         _stopped = true;
 
         return Task.CompletedTask;
+    }
+
+    private async Task RestoreCacheAsync(CancellationToken ct)
+    {
+        var restored = new List<SimpleInfo>();
+
+        foreach (var filePath in Directory.EnumerateFiles(_simpleQueueSettings.DataPath, "*", SearchOption.AllDirectories))
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var fileInfo = await TryRestoreFileAsync(filePath, ct);
+
+            if (fileInfo != null)
+            {
+                restored.Add(fileInfo);
+            }
+        }
+
+        foreach (var fileInfo in restored.OrderByDescending(i => i.Header.ReadingCount))
+        {
+            if (_cachedFiles.TryAdd(GetKey(fileInfo.Bucket, fileInfo.ObjectKey), fileInfo))
+            {
+                _cacheQueue.Enqueue(fileInfo);
+                Interlocked.Add(ref _totalBytes, fileInfo.ObjectSize);
+            }
+        }
+
+        _logger.LogInformation(
+            "Cache restored from '{DataPath}': {Count} files, {TotalBytes} bytes.",
+            _simpleQueueSettings.DataPath, _cacheQueue.Count, TotalBytes);
+    }
+
+    private async Task<SimpleInfo?> TryRestoreFileAsync(string filePath, CancellationToken ct)
+    {
+        // Ключ кэша строится из objectKey с разделителями '/' (как в URL запроса),
+        // поэтому относительный путь нормализуется обратно к '/'.
+        var relativePath = Path.GetRelativePath(_simpleQueueSettings.DataPath, filePath)
+            .Replace(Path.DirectorySeparatorChar, '/');
+        var separatorIndex = relativePath.IndexOf('/');
+
+        if (separatorIndex <= 0 || separatorIndex == relativePath.Length - 1)
+        {
+            _logger.LogWarning("Skip cache file outside of a bucket folder: {Path}", filePath);
+            return null;
+        }
+
+        var headerBuffer = new byte[Unsafe.SizeOf<FileHeader>()];
+        long fileLength;
+
+        await using (var fs = File.OpenRead(filePath))
+        {
+            fileLength = fs.Length;
+
+            if (fileLength < headerBuffer.Length)
+            {
+                _logger.LogWarning("Skip cache file shorter than the header: {Path}", filePath);
+                return null;
+            }
+
+            await fs.ReadExactlyAsync(headerBuffer, ct);
+        }
+
+        var header = MemoryMarshal.Read<FileHeader>(headerBuffer);
+
+        if (header.TypeLetter1 != 'C' || header.TypeLetter2 != 'H' || header.TypeLetter3 != 'E')
+        {
+            _logger.LogWarning("Skip cache file with an invalid header: {Path}", filePath);
+            return null;
+        }
+
+        var fileInfo = new SimpleInfo(_simpleQueueSettings.DataPath)
+        {
+            Bucket = relativePath[..separatorIndex],
+            ObjectKey = relativePath[(separatorIndex + 1)..],
+            ObjectSize = (int)(fileLength - headerBuffer.Length),
+            Header = header,
+        };
+
+        fileInfo.SetComplete();
+
+        return fileInfo;
     }
 
     private async Task CleanupAsync()
@@ -119,15 +212,23 @@ public class SimpleFileCache : IFileCache, IHostedService
         }
     }
 
-    private void CleanupInternal()
+    internal void CleanupInternal()
     {
-        while (_cacheQueue.Count > _simpleQueueSettings.MaxCount)
+        while (_cacheQueue.Count > _simpleQueueSettings.MaxCount
+            || Interlocked.Read(ref _totalBytes) > _simpleQueueSettings.MaxBytes)
         {
-            if (_cacheQueue.TryDequeue(out var info))
+            if (!_cacheQueue.TryDequeue(out var info))
             {
-                _cachedFiles.Remove(GetKey(info.Bucket, info.ObjectKey), out _);
-                info.Remove();
+                // Очередь пуста, но счётчик ещё выше лимита (допустимый дрейф) —
+                // выходим, иначе цикл никогда не завершится.
+                break;
             }
+
+            _cachedFiles.Remove(GetKey(info.Bucket, info.ObjectKey), out _);
+            // Счётчик корректируется до удаления файла: File.Delete может бросить
+            // исключение, а учёт всё равно должен сойтись.
+            Interlocked.Add(ref _totalBytes, -info.ObjectSize);
+            info.Remove();
         }
     }
 }
