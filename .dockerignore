@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/CacheData/
+.git/
+.github/
+.superpowers/
+src/S3CachedService.Tests/
+src/S3CachedService.Web/
+.vs/
+.idea/
+docs/
+*.md
+*.user
