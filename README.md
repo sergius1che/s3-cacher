@@ -21,6 +21,12 @@
 | `AWS:S3:ServiceURL` | `AWS__S3__ServiceURL` | Адрес S3-эндпоинта (MinIO и т.п.) |
 | `AWS:S3:ForcePathStyle` | `AWS__S3__ForcePathStyle` | Path-style адресация бакетов (для MinIO — `true`) |
 | `AWS:S3:UseHttp` | `AWS__S3__UseHttp` | Ходить в S3 по HTTP вместо HTTPS |
+| `QueueSettings:DataPath` | `QueueSettings__DataPath` | Папка дискового кэша (в `appsettings.json` — `CacheData`) |
+| `QueueSettings:MaxCount` | `QueueSettings__MaxCount` | Максимум файлов в кэше (в `appsettings.json` — `1000`) |
+| `QueueSettings:MaxBytes` | `QueueSettings__MaxBytes` | Максимальный суммарный размер кэша в байтах (в `appsettings.json` — `104857600`, т.е. 100 МБ) |
+
+При превышении любого из лимитов фоновая чистка вытесняет файлы из кэша
+в порядке FIFO.
 
 Пример конфига приложения:
 
@@ -33,18 +39,22 @@
       AWS__S3__ServiceURL: "http://minio.storage.svc:9000/"
       AWS__S3__ForcePathStyle: "true"
       AWS__S3__UseHttp: "true"
+      # Дисковый кэш
+      QueueSettings__DataPath: "/var/cache/s3-cacher"
+      QueueSettings__MaxCount: "10000"
+      QueueSettings__MaxBytes: "1073741824"
 ```
 
 Замечания:
 
-- **Кэш пишется на диск** в папку `CacheData` в рабочей директории приложения
-  (значение по умолчанию `SimpleQueueSettings.DataPath`) — подмонтируйте туда
-  volume. При постоянном (persistent) томе кэш переживает рестарт: индекс
-  восстанавливается при старте сканированием папки.
-- **Лимиты кэша пока не настраиваются извне**: секция настроек
-  `SimpleQueueSettings` (`DataPath`, `MaxCount`, `MaxBytes`) не привязана к
-  конфигурации приложения — всегда действуют значения по умолчанию
-  (`CacheData`, 1 000 000 файлов, 500 МБ).
+- **Кэш пишется на диск** в папку из `QueueSettings__DataPath` (в
+  `appsettings.json` — `CacheData` в рабочей директории приложения) —
+  подмонтируйте туда volume. При постоянном (persistent) томе кэш переживает
+  рестарт: индекс восстанавливается при старте сканированием папки.
+- **Значения по умолчанию**: если секция `QueueSettings` не задана вовсе,
+  действуют значения из кода (`CacheData`, 1 000 000 файлов, 500 МБ); но в
+  поставляемом `appsettings.json` секция задана — `CacheData`, 1 000 файлов,
+  100 МБ.
 - **Health-эндпоинты** `/health` и `/alive`
   настроить, пока это не изменено в `ServiceDefaults`.
 - Восстановление индекса кэша выполняется в `IHostedService.StartAsync` **до**
