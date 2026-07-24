@@ -37,6 +37,7 @@ builder.Services.AddSingleton<ICachedFileService, CachedFileService>();
 builder.Services.AddSingleton<SimpleFileCache>();
 builder.Services.AddSingleton<IFileCache>(p => p.GetRequiredService<SimpleFileCache>());
 builder.Services.AddHostedService(p => p.GetRequiredService<SimpleFileCache>());
+builder.Services.Configure<SimpleQueueSettings>(builder.Configuration.GetSection("QueueSettings").Bind);
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
