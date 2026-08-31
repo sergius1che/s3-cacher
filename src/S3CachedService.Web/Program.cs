@@ -1,3 +1,4 @@
+using S3CachedService.ServiceDefaults;
 using S3CachedService.Web;
 using S3CachedService.Web.Components;
 

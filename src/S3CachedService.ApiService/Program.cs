@@ -3,6 +3,7 @@ using S3CachedService.ApiService.S3Client;
 using OpenTelemetry.Trace;
 using S3CachedService.ApiService.Cache;
 using S3CachedService.ApiService.Cache.SimpleQueue;
+using S3CachedService.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 

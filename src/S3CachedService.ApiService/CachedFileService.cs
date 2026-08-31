@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Net.Http.Headers;
+using Prometheus;
 using S3CachedService.ApiService;
 using S3CachedService.ApiService.Cache;
 using S3CachedService.ApiService.Errors;
@@ -7,6 +8,14 @@ using S3CachedService.ApiService.S3Client;
 
 public class CachedFileService : ICachedFileService
 {
+    private static Counter _cacheHitsMetric = Metrics.CreateCounter(
+        "s3_cached_service_hits_total", 
+        "Total number of cache hits. Types: income, error, take, miss",
+        new CounterConfiguration 
+        {
+            LabelNames = ["type"]
+        });
+
     private readonly IS3Client _s3Client;
     private readonly IFileCache _cache;
 
@@ -18,10 +27,14 @@ public class CachedFileService : ICachedFileService
 
     public async Task GetFileAsync(HttpContext httpContext)
     {
+        _cacheHitsMetric.WithLabels("income").Inc();
+
         var path = httpContext.Request.RouteValues["path"] as string;
 
         if (string.IsNullOrEmpty(path))
         {
+            _cacheHitsMetric.WithLabels("error").Inc();
+
             var valodateError = new ValidateError("Path is required");
 
             await valodateError.WriteToAsync(httpContext);
@@ -42,6 +55,8 @@ public class CachedFileService : ICachedFileService
 
         if (string.IsNullOrEmpty(bucket))
         {
+            _cacheHitsMetric.WithLabels("error").Inc();
+
             var valodateError = new ValidateError("Bucket name is required");
 
             await valodateError.WriteToAsync(httpContext);
@@ -55,6 +70,8 @@ public class CachedFileService : ICachedFileService
 
         if (cacheError is null)
         {
+            _cacheHitsMetric.WithLabels("take").Inc();
+
             SetContentHeaders(httpContext, contentDisposition, mimeType);
 
             using (cachedFile)
@@ -67,6 +84,8 @@ public class CachedFileService : ICachedFileService
 
         if (cacheError is not CacheNotFoundError)
         {
+            _cacheHitsMetric.WithLabels("error").Inc();
+
             await cacheError.WriteToAsync(httpContext);
 
             return;
@@ -76,6 +95,8 @@ public class CachedFileService : ICachedFileService
 
         if (err != null)
         {
+            _cacheHitsMetric.WithLabels("error").Inc();
+
             await err.WriteToAsync(httpContext);
             return;
         }
@@ -88,6 +109,8 @@ public class CachedFileService : ICachedFileService
             {
                 if (!TryResolveRange(range, s3Object.Length, out var resolved))
                 {
+                    _cacheHitsMetric.WithLabels("error").Inc();
+
                     await WriteRangeNotSatisfiableAsync(httpContext, s3Object.Length);
 
                     return;
@@ -110,14 +133,17 @@ public class CachedFileService : ICachedFileService
                 // в ответ клиенту пишутся только байты запрошенного окна.
                 SetPartialContentHeaders(httpContext, window.Value, s3Object.Length);
 
+                _cacheHitsMetric.WithLabels("miss").Inc();
+
                 result = await _cache.SaveStreamAsync(bucket, objectKey, s3Object, httpContext.Response.BodyWriter, window.Value, httpContext.RequestAborted);
             }
 
             if (result.Error != null)
             {
+                _cacheHitsMetric.WithLabels("error").Inc();
                 await result.Error.WriteToAsync(httpContext);
                 return;
-        }
+            }
         }
     }
 
@@ -143,7 +169,7 @@ public class CachedFileService : ICachedFileService
     }
 
     private static async Task WriteFileAsync(HttpContext httpContext, Stream file, RangeItemHeaderValue? range)
-        {
+    {
         if (range is null)
         {
             await file.CopyToPipeAsync(httpContext.Response.BodyWriter, ct: httpContext.RequestAborted);
@@ -154,21 +180,21 @@ public class CachedFileService : ICachedFileService
         var total = file.Length - file.Position;
 
         if (!TryResolveRange(range, total, out var window))
-            {
+        {
             // Заголовки контента уже выставлены под успешный ответ — убираем лишний.
             httpContext.Response.Headers.Remove(HeaderNames.ContentDisposition);
 
             await WriteRangeNotSatisfiableAsync(httpContext, total);
 
-                return;
-            }
+            return;
+        }
 
         SetPartialContentHeaders(httpContext, window, total);
 
         file.Seek(window.From, SeekOrigin.Current);
 
         await file.CopyToPipeAsync(httpContext.Response.BodyWriter, window.Length, ct: httpContext.RequestAborted);
-        }
+    }
 
     /// <summary>
     /// Разрешает запрошенный диапазон в абсолютное окно [From..To] по полной длине объекта.
