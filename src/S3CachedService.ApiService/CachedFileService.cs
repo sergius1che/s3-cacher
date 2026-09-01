@@ -91,6 +91,8 @@ public class CachedFileService : ICachedFileService
             return;
         }
 
+        _cacheHitsMetric.WithLabels("miss").Inc();
+
         var (s3Object, err) = await _s3Client.GetObjectStreamAsync(bucket, objectKey, httpContext.RequestAborted);
 
         if (err != null)
