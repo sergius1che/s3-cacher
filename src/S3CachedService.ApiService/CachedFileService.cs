@@ -91,6 +91,8 @@ public class CachedFileService : ICachedFileService
             return;
         }
 
+        _cacheHitsMetric.WithLabels("miss").Inc();
+
         var (s3Object, err) = await _s3Client.GetObjectStreamAsync(bucket, objectKey, httpContext.RequestAborted);
 
         if (err != null)
@@ -132,8 +134,6 @@ public class CachedFileService : ICachedFileService
                 // Range при промахе: файл целиком закачивается в кэш,
                 // в ответ клиенту пишутся только байты запрошенного окна.
                 SetPartialContentHeaders(httpContext, window.Value, s3Object.Length);
-
-                _cacheHitsMetric.WithLabels("miss").Inc();
 
                 result = await _cache.SaveStreamAsync(bucket, objectKey, s3Object, httpContext.Response.BodyWriter, window.Value, httpContext.RequestAborted);
             }
