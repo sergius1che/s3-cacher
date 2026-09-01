@@ -135,6 +135,8 @@ public class CachedFileService : ICachedFileService
                 // в ответ клиенту пишутся только байты запрошенного окна.
                 SetPartialContentHeaders(httpContext, window.Value, s3Object.Length);
 
+                _cacheHitsMetric.WithLabels("miss").Inc();
+
                 result = await _cache.SaveStreamAsync(bucket, objectKey, s3Object, httpContext.Response.BodyWriter, window.Value, httpContext.RequestAborted);
             }
 
