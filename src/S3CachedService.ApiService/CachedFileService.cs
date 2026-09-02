@@ -47,11 +47,7 @@ public class CachedFileService : ICachedFileService
         var userFileName = reqParameters.FileName ?? objectKey;
         var mimeType = GetMimeType(userFileName);
 
-        var contentDisposition = new System.Net.Mime.ContentDisposition
-        {
-            Inline = ShouldDisplayInBrowser(mimeType), // true - показывать в браузере, false - скачивать
-            FileName = userFileName
-        };
+        var contentDisposition = BuildContentDisposition(userFileName, mimeType);
 
         if (string.IsNullOrEmpty(bucket))
         {
@@ -149,9 +145,9 @@ public class CachedFileService : ICachedFileService
         }
     }
 
-    private static void SetContentHeaders(HttpContext httpContext, System.Net.Mime.ContentDisposition contentDisposition, string mimeType)
+    private static void SetContentHeaders(HttpContext httpContext, string contentDisposition, string mimeType)
     {
-        httpContext.Response.Headers.ContentDisposition = contentDisposition.ToString();
+        httpContext.Response.Headers.ContentDisposition = contentDisposition;
         httpContext.Response.Headers.AcceptRanges = "bytes";
         httpContext.Response.ContentType = mimeType;
     }
@@ -258,6 +254,24 @@ public class CachedFileService : ICachedFileService
         }
 
         return "application/octet-stream";
+    }
+
+    /// <summary>
+    /// Собирает Content-Disposition по RFC 6266: ASCII-fallback в filename,
+    /// исходное имя — в filename* (percent-encoded UTF-8).
+    /// System.Net.Mime.ContentDisposition для HTTP не подходит: он кодирует
+    /// не-ASCII имя в почтовый encoded-word (RFC 2047) и сворачивает длинное
+    /// значение через CRLF — в заголовке ответа Kestrel падает на таком 0x000D.
+    /// </summary>
+    private string BuildContentDisposition(string userFileName, string mimeType)
+    {
+        // inline — показывать в браузере, attachment — скачивать.
+        var contentDisposition = new ContentDispositionHeaderValue(
+            ShouldDisplayInBrowser(mimeType) ? "inline" : "attachment");
+
+        contentDisposition.SetHttpFileName(userFileName);
+
+        return contentDisposition.ToString();
     }
 
     private bool ShouldDisplayInBrowser(string mimeType)
