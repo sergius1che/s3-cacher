@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
@@ -24,7 +25,20 @@ public static class Extensions
 
         builder.Services.AddServiceDiscovery();
 
-        builder.Services.AddCors();
+        var cors = builder.Configuration.GetSection("Cors");
+        builder.Services.AddCors(opt => opt.AddDefaultPolicy(policy =>
+        {
+            policy.WithOrigins(cors.GetSection("AllowedOrigins").Get<string[]>() ?? [])
+                  .WithMethods(cors.GetSection("AllowedMethods").Get<string[]>() ?? ["GET"])
+                  .AllowAnyHeader()
+                  .WithExposedHeaders(cors.GetSection("ExposedHeaders").Get<string[]>() ?? [])
+                  .SetPreflightMaxAge(TimeSpan.FromSeconds(cors.GetValue("MaxAgeSeconds", 3600)));
+
+            if (cors.GetValue<bool>("AllowCredentials"))
+            {
+                policy.AllowCredentials();
+            }
+        }));
 
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
