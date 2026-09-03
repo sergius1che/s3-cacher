@@ -45,6 +45,8 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+app.UseCors();
+
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
 
